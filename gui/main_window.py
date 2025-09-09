@@ -1,5 +1,6 @@
 import json
 import uuid
+import time
 import traceback
 from typing import List, Optional
 
@@ -16,7 +17,17 @@ from PyQt5.QtWidgets import (
     QMessageBox, QShortcut, QDialogButtonBox, QGroupBox, QComboBox, QMenu, QInputDialog
 )
 
-from utils import cvimg_to_qpixmap, encode_png_bytes, info, warn, err, make_letter_icon, hk_pretty
+from utils import (
+    cvimg_to_qpixmap,
+    encode_png_bytes,
+    info,
+    warn,
+    err,
+    make_letter_icon,
+    hk_pretty,
+    hk_normalize,
+    hk_to_tuple,
+)
 from core.models import StepData, RepeatConfig
 from core.runner import MacroRunner
 from core.recorder import InputRecorder
