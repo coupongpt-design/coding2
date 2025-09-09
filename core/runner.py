@@ -209,6 +209,8 @@ class MacroRunner(QThread):
                 return True
             self.msleep(int(step.poll_ms))
 
+        return False
+
 
     def _peek_next_image_step(self, start_index: int) -> Optional[StepData]:
         for j in range(start_index, len(self.steps)):
