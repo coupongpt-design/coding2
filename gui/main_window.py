@@ -238,34 +238,31 @@ class MainWindow(QMainWindow):
         self.update_preview()
         self.info(f"Deleted {len(rows)} step(s).")
 
+    def _safe_cleanup(self, func, desc: str):
+        try:
+            func()
+        except (RuntimeError, AttributeError) as e:
+            self.info(f"{desc}: {e}")
+
     def closeEvent(self, e):
         # 러너 안전 종료
-        try:
-            if self.runner and self.runner.isRunning():
-                self.runner.stop()
-                self.runner.wait(2000)
-        except Exception:
-            pass
+        if self.runner and self.runner.isRunning():
+            self._safe_cleanup(lambda: (self.runner.stop(), self.runner.wait(2000)), "Runner cleanup failed")
+
         # 레코더 정리
-        try:
-            if self.recorder:
-                self.recorder.stop()
-                self.recorder = None
-        except Exception:
-            pass
+        if self.recorder:
+            self._safe_cleanup(self.recorder.stop, "Recorder stop failed")
+            self.recorder = None
+
         # 글로벌 핫키 리스너 정지
-        try:
-            if hasattr(self, "_hotkey_listener") and self._hotkey_listener:
-                self._hotkey_listener.stop()
-                self._hotkey_listener = None
-        except Exception:
-            pass
+        if hasattr(self, "_hotkey_listener") and self._hotkey_listener:
+            self._safe_cleanup(self._hotkey_listener.stop, "Hotkey listener stop failed")
+            self._hotkey_listener = None
+
         # 오버레이 닫기
-        try:
-            for ov in list(self._live_overlays):
-                ov.close()
-        except Exception:
-            pass
+        for ov in list(self._live_overlays):
+            self._safe_cleanup(ov.close, "Overlay close failed")
+
         super().closeEvent(e)
 
     def info(self, msg: str):
