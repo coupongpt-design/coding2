@@ -4,7 +4,6 @@ import uuid
 import numpy as np
 import cv2
 from PyQt5.QtCore import Qt, QRect, QPoint, QEventLoop, QTimer
-from PyQt5.QtGui import QPixmap, QImage, QIcon, QKeySequence
 from PyQt5.QtWidgets import (
     QDialog, QFormLayout, QSpinBox, QLineEdit, QDialogButtonBox,
     QVBoxLayout, QLabel, QPushButton, QGroupBox, QHBoxLayout,
@@ -34,6 +33,8 @@ class KeyCaptureEdit(QLineEdit):
 
 
 class NotImageDialog(QDialog):
+    _last_point = None  # 마지막으로 선택된 좌표 기억
+
     def __init__(self, step: Optional[StepData], parent=None):
         super().__init__(parent)
         self.setWindowTitle("Not-Image Step")
@@ -42,6 +43,9 @@ class NotImageDialog(QDialog):
         self.setWindowModality(Qt.WindowModal)
 
         form = QFormLayout(self)
+
+        cur = QCursor.pos()
+        last = NotImageDialog._last_point
         
         # 기본 필드
         self.cbType = QComboBox()
@@ -55,14 +59,27 @@ class NotImageDialog(QDialog):
         self.spHold = QSpinBox();  self.spHold.setRange(0, 10000); self.spHold.setValue(step.hold_ms if step else 0)
 
         # 스크롤/드래그 목적지(또는 벡터)
-        self.spDx = QSpinBox(); self.spDx.setRange(-9999, 9999); self.spDx.setValue(step.scroll_dx if step else 0)
-        self.spDy = QSpinBox(); self.spDy.setRange(-9999, 9999); self.spDy.setValue(step.scroll_dy if step else 0)
+        self.spDx = QSpinBox(); self.spDx.setRange(-9999, 9999)
+        self.spDy = QSpinBox(); self.spDy.setRange(-9999, 9999)
+        if step and step.type == "drag":
+            self.spDx.setValue(step.drag_to_x if step.drag_to_x is not None else (last[0] if last else 0))
+            self.spDy.setValue(step.drag_to_y if step.drag_to_y is not None else (last[1] if last else 0))
+        elif step and step.type == "scroll":
+            self.spDx.setValue(step.scroll_dx)
+            self.spDy.setValue(step.scroll_dy)
+        else:
+            self.spDx.setValue(last[0] if last else 0)
+            self.spDy.setValue(last[1] if last else 0)
         self.spST = QSpinBox(); self.spST.setRange(1, 99);       self.spST.setValue(step.scroll_times if step else 1)
         self.spSI = QSpinBox(); self.spSI.setRange(0, 10000);    self.spSI.setValue(step.scroll_interval_ms if step else 0)
 
         # 클릭/드래그 시작 좌표
-        self.spClickX = QSpinBox(); self.spClickX.setRange(-9999, 9999); self.spClickX.setValue(step.click_x if step and step.click_x is not None else 0)
-        self.spClickY = QSpinBox(); self.spClickY.setRange(-9999, 9999); self.spClickY.setValue(step.click_y if step and step.click_y is not None else 0)
+        if step and step.click_x is not None and step.click_y is not None:
+            cx, cy = step.click_x, step.click_y
+        else:
+            cx, cy = cur.x(), cur.y()
+        self.spClickX = QSpinBox(); self.spClickX.setRange(-9999, 9999); self.spClickX.setValue(cx)
+        self.spClickY = QSpinBox(); self.spClickY.setRange(-9999, 9999); self.spClickY.setValue(cy)
         self.edBtn     = QLineEdit(step.click_button if step else "left")
 
         # 폼 배치
@@ -106,27 +123,6 @@ class NotImageDialog(QDialog):
         form.addRow(btns)
         btns.accepted.connect(self.accept)
         btns.rejected.connect(self.reject)
-
-        # 레이블 및 행 위젯 저장
-        self.lblKey = form.labelForField(self.edKey)
-        self.rowClick = rowClickWidget; self.lblClick = form.labelForField(rowClickWidget)
-        self.rowDest = rowDestWidget; self.lblDest = form.labelForField(rowDestWidget)
-        self.rowScroll = rowScrollWidget; self.lblScroll = form.labelForField(rowScrollWidget)
-
-        # 타입 변경에 따른 필드 표시 제어
-        self.cbType.currentTextChanged.connect(self._on_type_changed)
-        self._on_type_changed(self.cbType.currentText())
-
-        # 좌표 픽커 이벤트 연결 (그대로 복붙)
-        self.btnPickClick.clicked.connect(
-            lambda _=False, b=self.btnPickClick: self._pick_point_into(self.spClickX, self.spClickY, "클릭 위치", b)
-        )
-        self.btnPickDragFrom.clicked.connect(
-            lambda _=False, b=self.btnPickDragFrom: self._pick_point_into(self.spClickX, self.spClickY, "드래그 시작점", b)
-        )
-        self.btnPickDragTo.clicked.connect(
-            lambda _=False, b=self.btnPickDragTo: self._pick_point_into(self.spDx, self.spDy, "드래그 끝점", b)
-        )
 
     def _on_type_changed(self, t: str):
         show_key = t.startswith("key")
@@ -323,9 +319,19 @@ class NotImageDialog(QDialog):
                 if hasattr(sp_y, "blockSignals"): sp_y.blockSignals(True)
                 sp_x.setValue(int(x))
                 sp_y.setValue(int(y))
+                if not (sp_x is self.spDx and sp_y is self.spDy):
+                    if hasattr(self.spDx, "blockSignals"): self.spDx.blockSignals(True)
+                    if hasattr(self.spDy, "blockSignals"): self.spDy.blockSignals(True)
+                    self.spDx.setValue(int(x))
+                    self.spDy.setValue(int(y))
             finally:
                 if hasattr(sp_x, "blockSignals"): sp_x.blockSignals(False)
                 if hasattr(sp_y, "blockSignals"): sp_y.blockSignals(False)
+                if not (sp_x is self.spDx and sp_y is self.spDy):
+                    if hasattr(self.spDx, "blockSignals"): self.spDx.blockSignals(False)
+                    if hasattr(self.spDy, "blockSignals"): self.spDy.blockSignals(False)
+
+            NotImageDialog._last_point = (int(x), int(y))
 
             info(f"{label}: ({x},{y})")
 
