@@ -7,7 +7,7 @@ from PyQt5.QtGui import QPixmap, QImage, QIcon
 from PyQt5.QtWidgets import (
     QDialog, QFormLayout, QSpinBox, QLineEdit, QDialogButtonBox,
     QVBoxLayout, QLabel, QPushButton, QGroupBox, QHBoxLayout,
-    QComboBox, QMessageBox, QCheckBox
+    QComboBox, QMessageBox, QCheckBox, QApplication
 )
 
 from utils import cvimg_to_qpixmap, encode_png_bytes, _normalize_point_result, info
