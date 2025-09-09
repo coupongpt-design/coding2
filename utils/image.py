@@ -194,9 +194,9 @@ class Matcher:
             return []
 
     def _multiscale(self, img_pp, tpl_pp, step, th, delta, over_budget_cb):
-        scales = np.linspace(float(getattr(step, "ms_scale_min", 0.7)),
-                             float(getattr(step, "ms_scale_max", 1.3)),
-                             int(getattr(step, "ms_scale_steps", 5)))
+        scales = np.linspace(float(getattr(step, "ms_min_scale", 0.7)),
+                             float(getattr(step, "ms_max_scale", 1.3)),
+                             int(getattr(step, "ms_step", 5)))
         best = []
         best_seen = -1.0
         for sc in scales:
