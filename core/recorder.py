@@ -1,6 +1,7 @@
 from typing import List, Optional
 import time
 import json
+import uuid  # noqa: F401
 import pyautogui
 from PyQt5.QtCore import QObject, QRect, pyqtSignal
 from pynput import keyboard, mouse
