@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QComboBox, QMessageBox, QCheckBox, QApplication
 )
 
-from utils import cvimg_to_qpixmap, encode_png_bytes, _normalize_point_result, info
+from utils import cvimg_to_qpixmap, encode_png_bytes, _normalize_point_result, info, hk_normalize
 from core.models import StepData
 from gui.overlays import ROISelector, PointSelector
 
