@@ -1,5 +1,6 @@
 import time
-from typing import List
+import traceback
+from typing import List, Optional
 import cv2
 import numpy as np
 import mss
