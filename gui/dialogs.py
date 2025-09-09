@@ -1,9 +1,9 @@
 from typing import Optional
 import json
+import uuid
 import numpy as np
 import cv2
 from PyQt5.QtCore import Qt, QRect, QPoint, QEventLoop, QTimer
-from PyQt5.QtGui import QPixmap, QImage, QIcon, QCursor
 from PyQt5.QtWidgets import (
     QDialog, QFormLayout, QSpinBox, QLineEdit, QDialogButtonBox,
     QVBoxLayout, QLabel, QPushButton, QGroupBox, QHBoxLayout,
@@ -13,6 +13,23 @@ from PyQt5.QtWidgets import (
 from utils import cvimg_to_qpixmap, encode_png_bytes, _normalize_point_result, info, hk_normalize
 from core.models import StepData
 from gui.overlays import ROISelector, PointSelector
+
+
+class KeyCaptureEdit(QLineEdit):
+    def keyPressEvent(self, e):
+        key = e.key()
+        if key in (Qt.Key_Control, Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Meta):
+            return
+        if key in (Qt.Key_Backspace, Qt.Key_Delete) and not e.modifiers():
+            self.clear()
+            e.accept()
+            return
+        seq = QKeySequence(int(e.modifiers()) | key).toString()
+        seq = seq.replace("Meta+", "Win+").replace("Meta", "Win")
+        txt = hk_normalize(seq)
+        if txt:
+            self.setText(txt)
+        e.accept()
 
 
 class NotImageDialog(QDialog):
@@ -31,9 +48,13 @@ class NotImageDialog(QDialog):
         last = NotImageDialog._last_point
         
         # 기본 필드
-        self.edType = QLineEdit(step.type if step else "key")
+        self.cbType = QComboBox()
+        types = ["key", "key_down", "key_up", "key_hold", "click_point", "drag", "scroll"]
+        self.cbType.addItems(types)
+        if step and step.type in types:
+            self.cbType.setCurrentText(step.type)
         self.edName = QLineEdit(step.name if step else "")
-        self.edKey = QLineEdit(step.key_string or "" if step else "")
+        self.edKey = KeyCaptureEdit(step.key_string or "" if step else "")
         self.spTimes = QSpinBox(); self.spTimes.setRange(1, 99); self.spTimes.setValue(step.key_times if step else 1)
         self.spHold = QSpinBox();  self.spHold.setRange(0, 10000); self.spHold.setValue(step.hold_ms if step else 0)
 
@@ -62,33 +83,39 @@ class NotImageDialog(QDialog):
         self.edBtn     = QLineEdit(step.click_button if step else "left")
 
         # 폼 배치
-        form.addRow("Type", self.edType)
+        form.addRow("Type", self.cbType)
         form.addRow("Name", self.edName)
         form.addRow("Key String", self.edKey)
         form.addRow("Key Times", self.spTimes)
         form.addRow("Hold ms", self.spHold)
 
         # 클릭 좌표 / 드래그 시작 좌표 + 픽커 버튼들
-        from PyQt5.QtWidgets import QHBoxLayout, QPushButton
-        rowClick = QHBoxLayout()
+        from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QWidget
+        rowClickWidget = QWidget()
+        rowClick = QHBoxLayout(rowClickWidget); rowClick.setContentsMargins(0, 0, 0, 0)
         rowClick.addWidget(self.spClickX)
         rowClick.addWidget(self.spClickY)
         self.btnPickClick = QPushButton("클릭 좌표 선택")
         self.btnPickDragFrom = QPushButton("드래그 시작 선택")
         rowClick.addWidget(self.btnPickClick)
         rowClick.addWidget(self.btnPickDragFrom)
-        form.addRow("Click x / y (또는 Drag 시작)", rowClick)
+        form.addRow("Click x / y (또는 Drag 시작)", rowClickWidget)
 
         # 드래그 끝 좌표(또는 스크롤 dx/dy) + 픽커 버튼
-        rowDest = QHBoxLayout()
+        rowDestWidget = QWidget()
+        rowDest = QHBoxLayout(rowDestWidget); rowDest.setContentsMargins(0, 0, 0, 0)
         rowDest.addWidget(self.spDx)
         rowDest.addWidget(self.spDy)
         self.btnPickDragTo = QPushButton("드래그 끝 선택")
         rowDest.addWidget(self.btnPickDragTo)
-        form.addRow("Drag 끝 x / y (또는 Scroll dx / dy)", rowDest)
+        form.addRow("Drag 끝 x / y (또는 Scroll dx / dy)", rowDestWidget)
 
         # 나머지 스크롤/버튼 설정
-        form.addRow("Scroll times / interval", self.spST); form.addRow("", self.spSI)
+        rowScrollWidget = QWidget()
+        rowScroll = QHBoxLayout(rowScrollWidget); rowScroll.setContentsMargins(0, 0, 0, 0)
+        rowScroll.addWidget(self.spST)
+        rowScroll.addWidget(self.spSI)
+        form.addRow("Scroll times / interval", rowScrollWidget)
         form.addRow("Button", self.edBtn)
 
         # OK/Cancel
@@ -97,19 +124,25 @@ class NotImageDialog(QDialog):
         btns.accepted.connect(self.accept)
         btns.rejected.connect(self.reject)
 
-        # 좌표 픽커 이벤트 연결 (버튼 클릭 시 즉시 실행)
-        self.btnPickClick.clicked.connect(self._on_pick_click)
-        self.btnPickDragFrom.clicked.connect(self._on_pick_drag_from)
-        self.btnPickDragTo.clicked.connect(self._on_pick_drag_to)
+    def _on_type_changed(self, t: str):
+        show_key = t.startswith("key")
+        self.edKey.setVisible(show_key)
+        self.lblKey.setVisible(show_key)
 
-    def _on_pick_click(self):
-        self._pick_point_into(self.spClickX, self.spClickY, "클릭 위치", self.btnPickClick)
+        show_click = t in ("click_point", "drag")
+        self.rowClick.setVisible(show_click)
+        self.lblClick.setVisible(show_click)
+        self.btnPickClick.setVisible(show_click)
+        self.btnPickDragFrom.setVisible(t == "drag")
 
-    def _on_pick_drag_from(self):
-        self._pick_point_into(self.spClickX, self.spClickY, "드래그 시작점", self.btnPickDragFrom)
+        show_dest = t in ("drag", "scroll")
+        self.rowDest.setVisible(show_dest)
+        self.lblDest.setVisible(show_dest)
+        self.btnPickDragTo.setVisible(t == "drag")
 
-    def _on_pick_drag_to(self):
-        self._pick_point_into(self.spDx, self.spDy, "드래그 끝점", self.btnPickDragTo)
+        show_scroll = t == "scroll"
+        self.rowScroll.setVisible(show_scroll)
+        self.lblScroll.setVisible(show_scroll)
 
     def _robust_restore_self(self):
         """
@@ -511,20 +544,20 @@ class NotImageDialog(QDialog):
     def result_step(self) -> Optional[StepData]:
         if self.result() != QDialog.Accepted: 
             return None
-        t = self.edType.text().strip()
+        t = self.cbType.currentText().strip()
         name = self.edName.text().strip() or t
         if t == "key":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="key",
-                            key_string=self.edKey.text().strip(), key_times=self.spTimes.value())
+                            key_string=hk_normalize(self.edKey.text()), key_times=self.spTimes.value())
         if t == "key_down":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_down",
-                            key_string=self.edKey.text().strip())
+                            key_string=hk_normalize(self.edKey.text()))
         if t == "key_up":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_up",
-                            key_string=self.edKey.text().strip())
+                            key_string=hk_normalize(self.edKey.text()))
         if t == "key_hold":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_hold",
-                            key_string=self.edKey.text().strip(), hold_ms=self.spHold.value())
+                            key_string=hk_normalize(self.edKey.text()), hold_ms=self.spHold.value())
         if t == "click_point":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="click_point",
                             click_button=self.edBtn.text().strip() or "left",
