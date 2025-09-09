@@ -683,7 +683,17 @@ class MainWindow(QMainWindow):
         if not path: return
         try:
             with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as z:
-                scen = {"version": 8, "repeat": {"repeat_count": self.sbRepeatCount.value(), "repeat_cooldown_ms": self.sbCooldown.value(), "stop_on_fail": self.cbStopOnFail.isChecked(), "max_duration_ms": self.sbMaxDuration.value()}, "steps": [s.to_serializable() for s in self.steps]}
+                repeat_cfg = RepeatConfig(
+                    repeat_count=self.sbRepeatCount.value(),
+                    repeat_cooldown_ms=self.sbCooldown.value(),
+                    stop_on_fail=self.cbStopOnFail.isChecked(),
+                    max_duration_ms=self.sbMaxDuration.value(),
+                )
+                scen = {
+                    "repeat": asdict(repeat_cfg),
+                    "steps": [s.to_serializable() for s in self.steps],
+                    "version": 8,
+                }
                 z.writestr("scenario.json", json.dumps(scen, ensure_ascii=False, indent=2))
                 for s in self.steps:
                     if s.type == "image_click" and s.png_bytes:
