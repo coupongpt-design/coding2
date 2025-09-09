@@ -1,9 +1,10 @@
 from typing import Optional
 import json
+import uuid
 import numpy as np
 import cv2
 from PyQt5.QtCore import Qt, QRect, QPoint, QEventLoop, QTimer
-from PyQt5.QtGui import QPixmap, QImage, QIcon
+from PyQt5.QtGui import QPixmap, QImage, QIcon, QKeySequence
 from PyQt5.QtWidgets import (
     QDialog, QFormLayout, QSpinBox, QLineEdit, QDialogButtonBox,
     QVBoxLayout, QLabel, QPushButton, QGroupBox, QHBoxLayout,
@@ -13,6 +14,23 @@ from PyQt5.QtWidgets import (
 from utils import cvimg_to_qpixmap, encode_png_bytes, _normalize_point_result, info, hk_normalize
 from core.models import StepData
 from gui.overlays import ROISelector, PointSelector
+
+
+class KeyCaptureEdit(QLineEdit):
+    def keyPressEvent(self, e):
+        key = e.key()
+        if key in (Qt.Key_Control, Qt.Key_Shift, Qt.Key_Alt, Qt.Key_Meta):
+            return
+        if key in (Qt.Key_Backspace, Qt.Key_Delete) and not e.modifiers():
+            self.clear()
+            e.accept()
+            return
+        seq = QKeySequence(int(e.modifiers()) | key).toString()
+        seq = seq.replace("Meta+", "Win+").replace("Meta", "Win")
+        txt = hk_normalize(seq)
+        if txt:
+            self.setText(txt)
+        e.accept()
 
 
 class NotImageDialog(QDialog):
@@ -32,7 +50,7 @@ class NotImageDialog(QDialog):
         if step and step.type in types:
             self.cbType.setCurrentText(step.type)
         self.edName = QLineEdit(step.name if step else "")
-        self.edKey = QLineEdit(step.key_string or "" if step else "")
+        self.edKey = KeyCaptureEdit(step.key_string or "" if step else "")
         self.spTimes = QSpinBox(); self.spTimes.setRange(1, 99); self.spTimes.setValue(step.key_times if step else 1)
         self.spHold = QSpinBox();  self.spHold.setRange(0, 10000); self.spHold.setValue(step.hold_ms if step else 0)
 
@@ -524,16 +542,16 @@ class NotImageDialog(QDialog):
         name = self.edName.text().strip() or t
         if t == "key":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="key",
-                            key_string=self.edKey.text().strip(), key_times=self.spTimes.value())
+                            key_string=hk_normalize(self.edKey.text()), key_times=self.spTimes.value())
         if t == "key_down":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_down",
-                            key_string=self.edKey.text().strip())
+                            key_string=hk_normalize(self.edKey.text()))
         if t == "key_up":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_up",
-                            key_string=self.edKey.text().strip())
+                            key_string=hk_normalize(self.edKey.text()))
         if t == "key_hold":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_hold",
-                            key_string=self.edKey.text().strip(), hold_ms=self.spHold.value())
+                            key_string=hk_normalize(self.edKey.text()), hold_ms=self.spHold.value())
         if t == "click_point":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="click_point",
                             click_button=self.edBtn.text().strip() or "left",
