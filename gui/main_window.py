@@ -37,6 +37,36 @@ from gui.dialogs import NotImageDialog, ImageStepDialog, RecordingSettingsDialog
 from gui.overlays import CrosshairOverlay, ROISelector, PointSelector
 
 
+KEY_MAPPING = {
+    keyboard.Key.enter: "enter",
+    keyboard.Key.esc: "esc",
+    keyboard.Key.space: "space",
+    keyboard.Key.tab: "tab",
+    keyboard.Key.backspace: "backspace",
+    keyboard.Key.delete: "delete",
+    keyboard.Key.home: "home",
+    keyboard.Key.end: "end",
+    keyboard.Key.insert: "insert",
+    keyboard.Key.page_up: "pageup",
+    keyboard.Key.page_down: "pagedown",
+    keyboard.Key.left: "left",
+    keyboard.Key.right: "right",
+    keyboard.Key.up: "up",
+    keyboard.Key.down: "down",
+    keyboard.Key.shift: "shift",
+    keyboard.Key.shift_l: "shift",
+    keyboard.Key.shift_r: "shift",
+    keyboard.Key.ctrl: "ctrl",
+    keyboard.Key.ctrl_l: "ctrl",
+    keyboard.Key.ctrl_r: "ctrl",
+    keyboard.Key.alt: "alt",
+    keyboard.Key.alt_l: "alt",
+    keyboard.Key.alt_r: "alt",
+    keyboard.Key.cmd: "win",
+    keyboard.Key.cmd_l: "win",
+    keyboard.Key.cmd_r: "win",
+}
+
 class StepList(QListWidget):
     requestEdit = pyqtSignal(int)
     requestDelete = pyqtSignal(int)
@@ -411,31 +441,15 @@ class MainWindow(QMainWindow):
         return req_mods.issubset(mods_set)
 
     def _token_from_key(self, k) -> Optional[str]:
-        try:
-            mapping = {
-                keyboard.Key.enter: 'enter', keyboard.Key.esc: 'esc', keyboard.Key.space: 'space',
-                keyboard.Key.tab: 'tab', keyboard.Key.backspace: 'backspace', keyboard.Key.delete: 'delete',
-                keyboard.Key.home: 'home', keyboard.Key.end: 'end', keyboard.Key.insert: 'insert',
-                keyboard.Key.page_up: 'pageup', keyboard.Key.page_down: 'pagedown',
-                keyboard.Key.left: 'left', keyboard.Key.right: 'right', keyboard.Key.up: 'up', keyboard.Key.down: 'down',
-                keyboard.Key.shift: 'shift', keyboard.Key.shift_l: 'shift', keyboard.Key.shift_r: 'shift',
-                keyboard.Key.ctrl: 'ctrl', keyboard.Key.ctrl_l: 'ctrl', keyboard.Key.ctrl_r: 'ctrl',
-                keyboard.Key.alt: 'alt', keyboard.Key.alt_l: 'alt', keyboard.Key.alt_r: 'alt',
-                keyboard.Key.cmd: 'win', keyboard.Key.cmd_l: 'win', keyboard.Key.cmd_r: 'win'
-            }
-            if isinstance(k, keyboard.KeyCode) and k.char is not None:
-                ch = k.char.lower()
-                if ch.isalnum() or ch in "-=[]\\;',./`":
-                    return ch
-            for i in range(1, 25):
-                try:
-                    if k == getattr(keyboard.Key, f"f{i}"): return f"f{i}"
-                except Exception:
-                    pass
-            if k in mapping: return mapping[k]
-            return None
-        except Exception:
-            return None
+        if isinstance(k, keyboard.KeyCode) and k.char is not None:
+            ch = k.char.lower()
+            if ch.isalnum() or ch in "-=[]\\;',./`":
+                return ch
+        for i in range(1, 25):
+            fkey = getattr(keyboard.Key, f"f{i}", None)
+            if k == fkey:
+                return f"f{i}"
+        return KEY_MAPPING.get(k)
 
     def _act_run_from_hotkey(self):
         if self.recorder and getattr(self.recorder, "_active", False):
@@ -458,31 +472,28 @@ class MainWindow(QMainWindow):
         self.btnRecord.toggle()
 
     def _on_global_key(self, key):
-        try:
-            tok = self._token_from_key(key)
-            if tok in ('shift','ctrl','alt','win'):
-                self._mods_global.add(tok); return
-            def ready(tag):
-                now = time.time() * 1000
-                if now - self._hk_cooldown[tag] < self._hk_cool_ms: return False
-                self._hk_cooldown[tag] = now; return True
-            base = tok
-            if self._hk_run and self._match_combo(self._mods_global, base, self._hk_run) and ready("run"):
-                self._act_run_from_hotkey(); return
-            if self._hk_stop and self._match_combo(self._mods_global, base, self._hk_stop) and ready("stop"):
-                self._act_stop_from_hotkey(); return
-            if self._hk_record and self._match_combo(self._mods_global, base, self._hk_record) and ready("record"):
-                self._act_record_from_hotkey(); return
-        except Exception:
-            pass
+        tok = self._token_from_key(key)
+        if tok in ('shift', 'ctrl', 'alt', 'win'):
+            self._mods_global.add(tok)
+            return
+        def ready(tag):
+            now = time.time() * 1000
+            if now - self._hk_cooldown[tag] < self._hk_cool_ms:
+                return False
+            self._hk_cooldown[tag] = now
+            return True
+        base = tok
+        if self._hk_run and self._match_combo(self._mods_global, base, self._hk_run) and ready("run"):
+            self._act_run_from_hotkey(); return
+        if self._hk_stop and self._match_combo(self._mods_global, base, self._hk_stop) and ready("stop"):
+            self._act_stop_from_hotkey(); return
+        if self._hk_record and self._match_combo(self._mods_global, base, self._hk_record) and ready("record"):
+            self._act_record_from_hotkey(); return
 
     def _on_global_key_up(self, key):
-        try:
-            tok = self._token_from_key(key)
-            if tok in ('shift','ctrl','alt','win'):
-                self._mods_global.discard(tok)
-        except Exception:
-            pass
+        tok = self._token_from_key(key)
+        if tok in ('shift', 'ctrl', 'alt', 'win'):
+            self._mods_global.discard(tok)
 
     # --- preview / list ops ---
     def update_preview(self):
