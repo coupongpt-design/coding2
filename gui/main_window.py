@@ -22,7 +22,6 @@ from PyQt5.QtWidgets import (
 from utils import (
     cvimg_to_qpixmap,
     encode_png_bytes,
-    decode_png_bytes,
     info,
     warn,
     err,
