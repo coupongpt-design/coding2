@@ -1,11 +1,20 @@
-from typing import List
+from typing import List, Optional
 import time
 import json
 import pyautogui
 from PyQt5.QtCore import QObject, QRect, pyqtSignal
 from pynput import keyboard, mouse
 
-from utils import info, warn, err, encode_png_bytes, _normalize_point_result, safe_select_point
+from utils import (
+    info,
+    warn,
+    err,
+    encode_png_bytes,
+    _normalize_point_result,
+    safe_select_point,
+    hk_normalize,
+    hk_to_tuple,
+)
 from core.models import StepData
 
 
