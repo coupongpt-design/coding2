@@ -6,6 +6,7 @@ from typing import List, Optional
 import numpy as np
 import cv2
 import pyautogui
+from pynput import keyboard
 from PyQt5.QtCore import Qt, QRect, QPoint, QSize, QSettings, QTimer, QEventLoop, QObject, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QPixmap, QImage, QPainter, QColor, QIcon, QKeySequence
 from PyQt5.QtWidgets import (
