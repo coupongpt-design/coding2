@@ -712,8 +712,11 @@ class MainWindow(QMainWindow):
                 for d in scen.get("steps", []):
                     png = None
                     if d.get("image_path"):
-                        try: png = z.read(d["image_path"])
-                        except: png = None
+                        try:
+                            png = z.read(d["image_path"])
+                        except Exception as e:
+                            self.info(f"Failed to read image '{d['image_path']}' from '{path}': {e}. Skipping step.")
+                            continue
                     
                     # Get all fields from dataclass to build the object
                     valid_fields = {f.name for f in dataclass_fields(StepData)}
