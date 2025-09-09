@@ -2,11 +2,13 @@ import json
 import uuid
 import time
 import traceback
+import zipfile
+from dataclasses import fields as dataclass_fields, asdict
 from typing import List, Optional
 
 import numpy as np
 import cv2
-import pyautogui
+import mss
 from pynput import keyboard
 from PyQt5.QtCore import Qt, QRect, QPoint, QSize, QSettings, QTimer, QEventLoop, QObject, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QPixmap, QImage, QPainter, QColor, QIcon, QKeySequence
