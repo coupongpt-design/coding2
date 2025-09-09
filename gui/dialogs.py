@@ -26,7 +26,11 @@ class NotImageDialog(QDialog):
         form = QFormLayout(self)
         
         # 기본 필드
-        self.edType = QLineEdit(step.type if step else "key")
+        self.cbType = QComboBox()
+        types = ["key", "key_down", "key_up", "key_hold", "click_point", "drag", "scroll"]
+        self.cbType.addItems(types)
+        if step and step.type in types:
+            self.cbType.setCurrentText(step.type)
         self.edName = QLineEdit(step.name if step else "")
         self.edKey = QLineEdit(step.key_string or "" if step else "")
         self.spTimes = QSpinBox(); self.spTimes.setRange(1, 99); self.spTimes.setValue(step.key_times if step else 1)
@@ -44,33 +48,39 @@ class NotImageDialog(QDialog):
         self.edBtn     = QLineEdit(step.click_button if step else "left")
 
         # 폼 배치
-        form.addRow("Type", self.edType)
+        form.addRow("Type", self.cbType)
         form.addRow("Name", self.edName)
         form.addRow("Key String", self.edKey)
         form.addRow("Key Times", self.spTimes)
         form.addRow("Hold ms", self.spHold)
 
         # 클릭 좌표 / 드래그 시작 좌표 + 픽커 버튼들
-        from PyQt5.QtWidgets import QHBoxLayout, QPushButton
-        rowClick = QHBoxLayout()
+        from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QWidget
+        rowClickWidget = QWidget()
+        rowClick = QHBoxLayout(rowClickWidget); rowClick.setContentsMargins(0, 0, 0, 0)
         rowClick.addWidget(self.spClickX)
         rowClick.addWidget(self.spClickY)
         self.btnPickClick = QPushButton("클릭 좌표 선택")
         self.btnPickDragFrom = QPushButton("드래그 시작 선택")
         rowClick.addWidget(self.btnPickClick)
         rowClick.addWidget(self.btnPickDragFrom)
-        form.addRow("Click x / y (또는 Drag 시작)", rowClick)
+        form.addRow("Click x / y (또는 Drag 시작)", rowClickWidget)
 
         # 드래그 끝 좌표(또는 스크롤 dx/dy) + 픽커 버튼
-        rowDest = QHBoxLayout()
+        rowDestWidget = QWidget()
+        rowDest = QHBoxLayout(rowDestWidget); rowDest.setContentsMargins(0, 0, 0, 0)
         rowDest.addWidget(self.spDx)
         rowDest.addWidget(self.spDy)
         self.btnPickDragTo = QPushButton("드래그 끝 선택")
         rowDest.addWidget(self.btnPickDragTo)
-        form.addRow("Drag 끝 x / y (또는 Scroll dx / dy)", rowDest)
+        form.addRow("Drag 끝 x / y (또는 Scroll dx / dy)", rowDestWidget)
 
         # 나머지 스크롤/버튼 설정
-        form.addRow("Scroll times / interval", self.spST); form.addRow("", self.spSI)
+        rowScrollWidget = QWidget()
+        rowScroll = QHBoxLayout(rowScrollWidget); rowScroll.setContentsMargins(0, 0, 0, 0)
+        rowScroll.addWidget(self.spST)
+        rowScroll.addWidget(self.spSI)
+        form.addRow("Scroll times / interval", rowScrollWidget)
         form.addRow("Button", self.edBtn)
 
         # OK/Cancel
@@ -78,6 +88,16 @@ class NotImageDialog(QDialog):
         form.addRow(btns)
         btns.accepted.connect(self.accept)
         btns.rejected.connect(self.reject)
+
+        # 레이블 및 행 위젯 저장
+        self.lblKey = form.labelForField(self.edKey)
+        self.rowClick = rowClickWidget; self.lblClick = form.labelForField(rowClickWidget)
+        self.rowDest = rowDestWidget; self.lblDest = form.labelForField(rowDestWidget)
+        self.rowScroll = rowScrollWidget; self.lblScroll = form.labelForField(rowScrollWidget)
+
+        # 타입 변경에 따른 필드 표시 제어
+        self.cbType.currentTextChanged.connect(self._on_type_changed)
+        self._on_type_changed(self.cbType.currentText())
 
         # 좌표 픽커 이벤트 연결 (그대로 복붙)
         self.btnPickClick.clicked.connect(
@@ -89,6 +109,26 @@ class NotImageDialog(QDialog):
         self.btnPickDragTo.clicked.connect(
             lambda _=False, b=self.btnPickDragTo: self._pick_point_into(self.spDx, self.spDy, "드래그 끝점", b)
         )
+
+    def _on_type_changed(self, t: str):
+        show_key = t.startswith("key")
+        self.edKey.setVisible(show_key)
+        self.lblKey.setVisible(show_key)
+
+        show_click = t in ("click_point", "drag")
+        self.rowClick.setVisible(show_click)
+        self.lblClick.setVisible(show_click)
+        self.btnPickClick.setVisible(show_click)
+        self.btnPickDragFrom.setVisible(t == "drag")
+
+        show_dest = t in ("drag", "scroll")
+        self.rowDest.setVisible(show_dest)
+        self.lblDest.setVisible(show_dest)
+        self.btnPickDragTo.setVisible(t == "drag")
+
+        show_scroll = t == "scroll"
+        self.rowScroll.setVisible(show_scroll)
+        self.lblScroll.setVisible(show_scroll)
 
     def _robust_restore_self(self):
         """
@@ -480,7 +520,7 @@ class NotImageDialog(QDialog):
     def result_step(self) -> Optional[StepData]:
         if self.result() != QDialog.Accepted: 
             return None
-        t = self.edType.text().strip()
+        t = self.cbType.currentText().strip()
         name = self.edName.text().strip() or t
         if t == "key":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="key",
