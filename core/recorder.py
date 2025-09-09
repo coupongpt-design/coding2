@@ -1,6 +1,5 @@
 from typing import List, Optional
 import time
-import json
 import pyautogui
 from PyQt5.QtCore import QObject, QRect, pyqtSignal
 from pynput import keyboard, mouse
