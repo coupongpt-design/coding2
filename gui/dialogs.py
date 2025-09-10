@@ -298,21 +298,22 @@ class NotImageDialog(QDialog):
         try: QApplication.processEvents(QEventLoop.AllEvents, 50)
         except Exception: pass
         try:
-            self._robust_restore_self()  # 혹시 남은 비활성/숨김 상태를 한 번 더 복구
+            if self.isVisible():
+                self._robust_restore_self()  # 혹시 남은 비활성/숨김 상태를 한 번 더 복구
         except Exception:
             pass
 
     # ✔ OK
     def accept(self):
         self._accepted = True
-        super().accept()
         self._finalize_close()
+        super().accept()
 
     # ✔ Cancel
     def reject(self):
         self._accepted = False
-        super().reject()
         self._finalize_close()
+        super().reject()
         
     # === DROP-IN REPLACEMENT: 클릭 좌표 선택(오버레이 보장) ===
     def _pick_point_into(self, sp_x, sp_y, label: str, source_btn=None, update_dest: bool = True):
@@ -815,7 +816,8 @@ class ImageStepDialog(QDialog):
         try: QApplication.processEvents(QEventLoop.AllEvents, 50)
         except Exception: pass
         try:
-            self._robust_restore_self()  # 혹시 남은 비활성/숨김 상태를 한 번 더 복구
+            if self.isVisible():
+                self._robust_restore_self()  # 혹시 남은 비활성/숨김 상태를 한 번 더 복구
         except Exception:
             pass
 
