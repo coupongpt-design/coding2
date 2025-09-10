@@ -46,6 +46,7 @@ class NotImageDialog(QDialog):
 
     def __init__(self, step: Optional[StepData], parent=None):
         super().__init__(parent)
+        self._accepted = False
         self.setWindowTitle("Not-Image Step")
         self.setAttribute(Qt.WA_DeleteOnClose, False)
         self.setModal(True)
@@ -303,13 +304,15 @@ class NotImageDialog(QDialog):
 
     # ✔ OK
     def accept(self):
-        self._finalize_close()
+        self._accepted = True
         super().accept()
+        self._finalize_close()
 
     # ✔ Cancel
     def reject(self):
-        self._finalize_close()
+        self._accepted = False
         super().reject()
+        self._finalize_close()
         
     # === DROP-IN REPLACEMENT: 클릭 좌표 선택(오버레이 보장) ===
     def _pick_point_into(self, sp_x, sp_y, label: str, source_btn=None, update_dest: bool = True):
@@ -607,6 +610,8 @@ class NotImageDialog(QDialog):
 
     # ---- 결과 구성 ----
     def result_step(self) -> Optional[StepData]:
+        if not self._accepted:
+            return None
         t = self.cbType.currentText().strip()
         name = self.edName.text().strip() or t
         key_string = self.edKey.text().strip()
