@@ -541,7 +541,11 @@ class MainWindow(QMainWindow):
         if dlg.exec_() == QDialog.Accepted:
             s = dlg.result_step()
             if s:
-                self.steps.append(s); self.add_list_item(s)
+                self.steps.append(s)
+                self.add_list_item(s)
+                self.list.setCurrentRow(self.list.count() - 1)
+                self.list.scrollToItem(self.list.currentItem())
+                self.update_preview()
         # 안전핀: 포커스 복구
         self.raise_(); self.activateWindow()
 
