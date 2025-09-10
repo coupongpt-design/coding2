@@ -12,7 +12,14 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QKeySequence, QCursor
 
-from utils import cvimg_to_qpixmap, encode_png_bytes, _normalize_point_result, info, hk_normalize
+from utils import (
+    cvimg_to_qpixmap,
+    encode_png_bytes,
+    _normalize_point_result,
+    info,
+    hk_normalize,
+    safe_select_point,
+)
 from core.models import StepData
 from gui.overlays import ROISelector, PointSelector
 
@@ -334,7 +341,7 @@ class NotImageDialog(QDialog):
             except Exception: pass
 
             # 좌표 픽커 실행 (parent=None 권장)
-            res = _safe_select_point(None)
+            res = safe_select_point(None)
             norm = _normalize_point_result(res)
             if norm is None:
                 info("Point selection canceled or failed.")
