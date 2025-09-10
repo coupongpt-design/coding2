@@ -538,14 +538,14 @@ class MainWindow(QMainWindow):
 
     def add_not_image_step(self):
         dlg = NotImageDialog(None, self)
-        if dlg.exec_() == QDialog.Accepted:
-            s = dlg.result_step()
-            if s:
-                self.steps.append(s)
-                self.add_list_item(s)
-                self.list.setCurrentRow(self.list.count() - 1)
-                self.list.scrollToItem(self.list.currentItem())
-                self.update_preview()
+        dlg.exec_()
+        s = dlg.result_step()
+        if s:
+            self.steps.append(s)
+            self.add_list_item(s)
+            self.list.setCurrentRow(self.list.count() - 1)
+            self.list.scrollToItem(self.list.currentItem())
+            self.update_preview()
         # 안전핀: 포커스 복구
         self.raise_(); self.activateWindow()
 
@@ -559,19 +559,19 @@ class MainWindow(QMainWindow):
         s = self.steps[idx]
         if s.type == "image_click":
             dlg = ImageStepDialog(s, self)
-            if dlg.exec_() == QDialog.Accepted:
-                it = self.list.item(idx); it.setData(Qt.UserRole, s)
-                if s.ensure_tpl() is not None:
-                    it.setIcon(QIcon(cvimg_to_qpixmap(s.ensure_tpl()).scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation)))
-                self.update_preview()
+            dlg.exec_()
+            it = self.list.item(idx); it.setData(Qt.UserRole, s)
+            if s.ensure_tpl() is not None:
+                it.setIcon(QIcon(cvimg_to_qpixmap(s.ensure_tpl()).scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation)))
+            self.update_preview()
         else:
             dlg = NotImageDialog(s, self)
-            if dlg.exec_() == QDialog.Accepted:
-                ns = dlg.result_step()
-                if ns:
-                    self.steps[idx] = ns
-                    it = self.list.item(idx); it.setData(Qt.UserRole, ns); it.setText(ns.name)
-                    self.update_preview()
+            dlg.exec_()
+            ns = dlg.result_step()
+            if ns:
+                self.steps[idx] = ns
+                it = self.list.item(idx); it.setData(Qt.UserRole, ns); it.setText(ns.name)
+                self.update_preview()
         # 안전핀: 포커스 복구
         self.raise_(); self.activateWindow()
 
