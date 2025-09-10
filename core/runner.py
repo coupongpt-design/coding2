@@ -370,10 +370,10 @@ class MacroRunner(QThread):
             return True
         try:
             pyautogui.moveTo(int(s.drag_from_x), int(s.drag_from_y))
-            pyautogui.mouseDown()
+            pyautogui.mouseDown(button=s.click_button or "left")
             self.msleep(max(1, int(s.drag_duration_ms)))
             pyautogui.moveTo(int(s.drag_to_x), int(s.drag_to_y))
-            pyautogui.mouseUp()
+            pyautogui.mouseUp(button=s.click_button or "left")
             return True
         except Exception as e:
             self.log.emit(f"  !! drag err: {e}")
