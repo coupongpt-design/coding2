@@ -78,6 +78,8 @@ class NotImageDialog(QDialog):
             self.spDy.setValue(last[1])
         self.spST = QSpinBox(); self.spST.setRange(1, 99);       self.spST.setValue(step.scroll_times if step else 1)
         self.spSI = QSpinBox(); self.spSI.setRange(0, 10000);    self.spSI.setValue(step.scroll_interval_ms if step else 0)
+        self.spDragDur = QSpinBox(); self.spDragDur.setRange(1, 10000);
+        self.spDragDur.setValue(step.drag_duration_ms if step and step.type == "drag" else 200)
 
         # 클릭/드래그 시작 좌표
         self.spClickX = QSpinBox(); self.spClickX.setRange(-9999, 9999); self.spClickX.setValue(cur.x())
@@ -118,6 +120,9 @@ class NotImageDialog(QDialog):
         form.addRow("Drag 끝 x / y (또는 Scroll dx / dy)", rowDestWidget)
         self.rowDest = rowDestWidget
         self.lblDest = form.labelForField(rowDestWidget)
+
+        form.addRow("Drag duration ms", self.spDragDur)
+        self.lblDragDur = form.labelForField(self.spDragDur)
 
         # 나머지 스크롤/버튼 설정
         rowScrollWidget = QWidget()
@@ -171,6 +176,10 @@ class NotImageDialog(QDialog):
         self.rowDest.setVisible(show_dest)
         self.lblDest.setVisible(show_dest)
         self.btnPickDragTo.setVisible(t == "drag")
+
+        show_drag_dur = t == "drag"
+        self.spDragDur.setVisible(show_drag_dur)
+        self.lblDragDur.setVisible(show_drag_dur)
 
         show_scroll = t == "scroll"
         self.rowScroll.setVisible(show_scroll)
@@ -602,7 +611,7 @@ class NotImageDialog(QDialog):
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="drag",
                             drag_from_x=self.spClickX.value(), drag_from_y=self.spClickY.value(),
                             drag_to_x=self.spDx.value(), drag_to_y=self.spDy.value(),
-                            drag_duration_ms=max(1, self.spSI.value()))
+                            drag_duration_ms=max(1, self.spDragDur.value()))
         if t == "scroll":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="scroll",
                             scroll_dx=self.spDx.value(), scroll_dy=self.spDy.value(),
