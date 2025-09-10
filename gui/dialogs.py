@@ -145,7 +145,7 @@ class NotImageDialog(QDialog):
             lambda: self._pick_point_into(self.spClickX, self.spClickY, "클릭 좌표", self.btnPickClick)
         )
         self.btnPickDragFrom.clicked.connect(
-            lambda: self._pick_point_into(self.spClickX, self.spClickY, "드래그 시작", self.btnPickDragFrom)
+            lambda: self._pick_point_into(self.spClickX, self.spClickY, "드래그 시작", self.btnPickDragFrom, update_dest=False)
         )
         self.btnPickDragTo.clicked.connect(
             lambda: self._pick_point_into(self.spDx, self.spDy, "드래그 끝", self.btnPickDragTo)
@@ -283,7 +283,7 @@ class NotImageDialog(QDialog):
         super().reject()
         
     # === DROP-IN REPLACEMENT: 클릭 좌표 선택(오버레이 보장) ===
-    def _pick_point_into(self, sp_x, sp_y, label: str, source_btn=None):
+    def _pick_point_into(self, sp_x, sp_y, label: str, source_btn=None, update_dest: bool = True):
         """
         안전한 좌표 픽커:
         - 재진입 방지(self._picking)
@@ -355,7 +355,7 @@ class NotImageDialog(QDialog):
                 if hasattr(sp_y, "blockSignals"): sp_y.blockSignals(True)
                 sp_x.setValue(int(x))
                 sp_y.setValue(int(y))
-                if not (sp_x is self.spDx and sp_y is self.spDy):
+                if update_dest and not (sp_x is self.spDx and sp_y is self.spDy):
                     if hasattr(self.spDx, "blockSignals"): self.spDx.blockSignals(True)
                     if hasattr(self.spDy, "blockSignals"): self.spDy.blockSignals(True)
                     self.spDx.setValue(int(x))
@@ -363,7 +363,7 @@ class NotImageDialog(QDialog):
             finally:
                 if hasattr(sp_x, "blockSignals"): sp_x.blockSignals(False)
                 if hasattr(sp_y, "blockSignals"): sp_y.blockSignals(False)
-                if not (sp_x is self.spDx and sp_y is self.spDy):
+                if update_dest and not (sp_x is self.spDx and sp_y is self.spDy):
                     if hasattr(self.spDx, "blockSignals"): self.spDx.blockSignals(False)
                     if hasattr(self.spDy, "blockSignals"): self.spDy.blockSignals(False)
 
