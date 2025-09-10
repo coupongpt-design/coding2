@@ -70,9 +70,16 @@ class NotImageDialog(QDialog):
         # 스크롤/드래그 목적지(또는 벡터)
         self.spDx = QSpinBox(); self.spDx.setRange(-9999, 9999)
         self.spDy = QSpinBox(); self.spDy.setRange(-9999, 9999)
-        if step and step.type == "scroll":
-            self.spDx.setValue(step.scroll_dx if step.scroll_dx is not None else 0)
-            self.spDy.setValue(step.scroll_dy if step.scroll_dy is not None else 0)
+        if step:
+            if step.type == "scroll":
+                self.spDx.setValue(step.scroll_dx if step.scroll_dx is not None else 0)
+                self.spDy.setValue(step.scroll_dy if step.scroll_dy is not None else 0)
+            elif step.drag_to_x is not None and step.drag_to_y is not None:
+                self.spDx.setValue(step.drag_to_x)
+                self.spDy.setValue(step.drag_to_y)
+            else:
+                self.spDx.setValue(last[0])
+                self.spDy.setValue(last[1])
         else:
             self.spDx.setValue(last[0])
             self.spDy.setValue(last[1])
@@ -80,8 +87,21 @@ class NotImageDialog(QDialog):
         self.spSI = QSpinBox(); self.spSI.setRange(0, 10000);    self.spSI.setValue(step.scroll_interval_ms if step else 0)
 
         # 클릭/드래그 시작 좌표
-        self.spClickX = QSpinBox(); self.spClickX.setRange(-9999, 9999); self.spClickX.setValue(cur.x())
-        self.spClickY = QSpinBox(); self.spClickY.setRange(-9999, 9999); self.spClickY.setValue(cur.y())
+        self.spClickX = QSpinBox(); self.spClickX.setRange(-9999, 9999)
+        self.spClickY = QSpinBox(); self.spClickY.setRange(-9999, 9999)
+        if step:
+            if step.click_x is not None and step.click_y is not None:
+                self.spClickX.setValue(step.click_x)
+                self.spClickY.setValue(step.click_y)
+            elif step.drag_from_x is not None and step.drag_from_y is not None:
+                self.spClickX.setValue(step.drag_from_x)
+                self.spClickY.setValue(step.drag_from_y)
+            else:
+                self.spClickX.setValue(cur.x())
+                self.spClickY.setValue(cur.y())
+        else:
+            self.spClickX.setValue(cur.x())
+            self.spClickY.setValue(cur.y())
         self.edBtn     = QLineEdit(step.click_button if step else "left")
 
         # 폼 배치
