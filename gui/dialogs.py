@@ -578,22 +578,27 @@ class NotImageDialog(QDialog):
 
     # ---- 결과 구성 ----
     def result_step(self) -> Optional[StepData]:
-        if self.result() != QDialog.Accepted: 
+        if self.result() != QDialog.Accepted:
             return None
         t = self.cbType.currentText().strip()
         name = self.edName.text().strip() or t
-        if t == "key":
-            return StepData(id=str(uuid.uuid4())[:8], name=name, type="key",
-                            key_string=self.edKey.text(), key_times=self.spTimes.value())
-        if t == "key_down":
-            return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_down",
-                            key_string=self.edKey.text())
-        if t == "key_up":
-            return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_up",
-                            key_string=self.edKey.text())
-        if t == "key_hold":
-            return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_hold",
-                            key_string=self.edKey.text(), hold_ms=self.spHold.value())
+        key_string = self.edKey.text().strip()
+        if t in ("key", "key_down", "key_up", "key_hold"):
+            if not key_string:
+                QMessageBox.warning(self, "키 입력 오류", "키 문자열이 비어 있습니다.")
+                return None
+            if t == "key":
+                return StepData(id=str(uuid.uuid4())[:8], name=name, type="key",
+                                key_string=key_string, key_times=self.spTimes.value())
+            if t == "key_down":
+                return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_down",
+                                key_string=key_string)
+            if t == "key_up":
+                return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_up",
+                                key_string=key_string)
+            if t == "key_hold":
+                return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_hold",
+                                key_string=key_string, hold_ms=self.spHold.value())
         if t == "click_point":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="click_point",
                             click_button=self.edBtn.text().strip() or "left",
