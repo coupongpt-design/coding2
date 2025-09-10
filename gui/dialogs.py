@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QLabel, QPushButton, QGroupBox, QHBoxLayout,
     QComboBox, QMessageBox, QCheckBox, QApplication
 )
+from PyQt5.QtGui import QKeySequence, QCursor
 
 from utils import cvimg_to_qpixmap, encode_png_bytes, _normalize_point_result, info, hk_normalize
 from core.models import StepData
@@ -80,8 +81,11 @@ class NotImageDialog(QDialog):
         form.addRow("Type", self.cbType)
         form.addRow("Name", self.edName)
         form.addRow("Key String", self.edKey)
+        self.lblKey = form.labelForField(self.edKey)
         form.addRow("Key Times", self.spTimes)
+        self.lblTimes = form.labelForField(self.spTimes)
         form.addRow("Hold ms", self.spHold)
+        self.lblHold = form.labelForField(self.spHold)
 
         # 클릭 좌표 / 드래그 시작 좌표 + 픽커 버튼들
         from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QWidget
@@ -94,6 +98,8 @@ class NotImageDialog(QDialog):
         rowClick.addWidget(self.btnPickClick)
         rowClick.addWidget(self.btnPickDragFrom)
         form.addRow("Click x / y (또는 Drag 시작)", rowClickWidget)
+        self.rowClick = rowClickWidget
+        self.lblClick = form.labelForField(rowClickWidget)
 
         # 드래그 끝 좌표(또는 스크롤 dx/dy) + 픽커 버튼
         rowDestWidget = QWidget()
@@ -103,6 +109,8 @@ class NotImageDialog(QDialog):
         self.btnPickDragTo = QPushButton("드래그 끝 선택")
         rowDest.addWidget(self.btnPickDragTo)
         form.addRow("Drag 끝 x / y (또는 Scroll dx / dy)", rowDestWidget)
+        self.rowDest = rowDestWidget
+        self.lblDest = form.labelForField(rowDestWidget)
 
         # 나머지 스크롤/버튼 설정
         rowScrollWidget = QWidget()
@@ -110,7 +118,14 @@ class NotImageDialog(QDialog):
         rowScroll.addWidget(self.spST)
         rowScroll.addWidget(self.spSI)
         form.addRow("Scroll times / interval", rowScrollWidget)
+        self.rowScroll = rowScrollWidget
+        self.lblScroll = form.labelForField(rowScrollWidget)
         form.addRow("Button", self.edBtn)
+        self.lblBtn = form.labelForField(self.edBtn)
+
+        # Type 변경 시 필드 표시 제어
+        self.cbType.currentTextChanged.connect(self._on_type_changed)
+        self._on_type_changed(self.cbType.currentText())
 
         # OK/Cancel
         btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
@@ -134,6 +149,11 @@ class NotImageDialog(QDialog):
         self.edKey.setVisible(show_key)
         self.lblKey.setVisible(show_key)
 
+        self.spTimes.setVisible(t == "key")
+        self.lblTimes.setVisible(t == "key")
+        self.spHold.setVisible(t == "key_hold")
+        self.lblHold.setVisible(t == "key_hold")
+
         show_click = t in ("click_point", "drag")
         self.rowClick.setVisible(show_click)
         self.lblClick.setVisible(show_click)
@@ -148,6 +168,10 @@ class NotImageDialog(QDialog):
         show_scroll = t == "scroll"
         self.rowScroll.setVisible(show_scroll)
         self.lblScroll.setVisible(show_scroll)
+
+        show_btn = t == "click_point"
+        self.edBtn.setVisible(show_btn)
+        self.lblBtn.setVisible(show_btn)
 
     def _robust_restore_self(self):
         """
