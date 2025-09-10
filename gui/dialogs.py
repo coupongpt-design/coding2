@@ -4,6 +4,7 @@ import uuid
 import numpy as np
 import cv2
 from PyQt5.QtCore import Qt, QRect, QPoint, QEventLoop, QTimer
+from PyQt5.QtGui import QKeySequence, QCursor
 from PyQt5.QtWidgets import (
     QDialog, QFormLayout, QSpinBox, QLineEdit, QDialogButtonBox,
     QVBoxLayout, QLabel, QPushButton, QGroupBox, QHBoxLayout,
@@ -45,7 +46,7 @@ class NotImageDialog(QDialog):
         form = QFormLayout(self)
 
         cur = QCursor.pos()
-        last = NotImageDialog._last_point
+        last = NotImageDialog._last_point or (cur.x(), cur.y())
         
         # 기본 필드
         self.cbType = QComboBox()
@@ -61,25 +62,18 @@ class NotImageDialog(QDialog):
         # 스크롤/드래그 목적지(또는 벡터)
         self.spDx = QSpinBox(); self.spDx.setRange(-9999, 9999)
         self.spDy = QSpinBox(); self.spDy.setRange(-9999, 9999)
-        if step and step.type == "drag":
-            self.spDx.setValue(step.drag_to_x if step.drag_to_x is not None else (last[0] if last else 0))
-            self.spDy.setValue(step.drag_to_y if step.drag_to_y is not None else (last[1] if last else 0))
-        elif step and step.type == "scroll":
-            self.spDx.setValue(step.scroll_dx)
-            self.spDy.setValue(step.scroll_dy)
+        if step and step.type == "scroll":
+            self.spDx.setValue(step.scroll_dx if step.scroll_dx is not None else 0)
+            self.spDy.setValue(step.scroll_dy if step.scroll_dy is not None else 0)
         else:
-            self.spDx.setValue(last[0] if last else 0)
-            self.spDy.setValue(last[1] if last else 0)
+            self.spDx.setValue(last[0])
+            self.spDy.setValue(last[1])
         self.spST = QSpinBox(); self.spST.setRange(1, 99);       self.spST.setValue(step.scroll_times if step else 1)
         self.spSI = QSpinBox(); self.spSI.setRange(0, 10000);    self.spSI.setValue(step.scroll_interval_ms if step else 0)
 
         # 클릭/드래그 시작 좌표
-        if step and step.click_x is not None and step.click_y is not None:
-            cx, cy = step.click_x, step.click_y
-        else:
-            cx, cy = cur.x(), cur.y()
-        self.spClickX = QSpinBox(); self.spClickX.setRange(-9999, 9999); self.spClickX.setValue(cx)
-        self.spClickY = QSpinBox(); self.spClickY.setRange(-9999, 9999); self.spClickY.setValue(cy)
+        self.spClickX = QSpinBox(); self.spClickX.setRange(-9999, 9999); self.spClickX.setValue(cur.x())
+        self.spClickY = QSpinBox(); self.spClickY.setRange(-9999, 9999); self.spClickY.setValue(cur.y())
         self.edBtn     = QLineEdit(step.click_button if step else "left")
 
         # 폼 배치
@@ -123,6 +117,17 @@ class NotImageDialog(QDialog):
         form.addRow(btns)
         btns.accepted.connect(self.accept)
         btns.rejected.connect(self.reject)
+
+        # 좌표 픽커 버튼들 연결: 선택 즉시 필드 반영
+        self.btnPickClick.clicked.connect(
+            lambda: self._pick_point_into(self.spClickX, self.spClickY, "클릭 좌표", self.btnPickClick)
+        )
+        self.btnPickDragFrom.clicked.connect(
+            lambda: self._pick_point_into(self.spClickX, self.spClickY, "드래그 시작", self.btnPickDragFrom)
+        )
+        self.btnPickDragTo.clicked.connect(
+            lambda: self._pick_point_into(self.spDx, self.spDy, "드래그 끝", self.btnPickDragTo)
+        )
 
     def _on_type_changed(self, t: str):
         show_key = t.startswith("key")
