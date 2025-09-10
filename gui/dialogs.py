@@ -205,7 +205,7 @@ class NotImageDialog(QDialog):
         self.rowScroll.setVisible(show_scroll)
         self.lblScroll.setVisible(show_scroll)
 
-        show_btn = t == "click_point"
+        show_btn = t in ("click_point", "drag")
         self.edBtn.setVisible(show_btn)
         self.lblBtn.setVisible(show_btn)
 
@@ -636,7 +636,8 @@ class NotImageDialog(QDialog):
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="drag",
                             drag_from_x=self.spClickX.value(), drag_from_y=self.spClickY.value(),
                             drag_to_x=self.spDx.value(), drag_to_y=self.spDy.value(),
-                            drag_duration_ms=max(1, self.spDragDur.value()))
+                            drag_duration_ms=max(1, self.spDragDur.value()),
+                            click_button=self.edBtn.text().strip() or "left")
         if t == "scroll":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="scroll",
                             scroll_dx=self.spDx.value(), scroll_dy=self.spDy.value(),
