@@ -369,13 +369,16 @@ class MacroRunner(QThread):
             self.requestCrosshair.emit(int(s.drag_to_x), int(s.drag_to_y), 200)
             return True
         try:
+            btn = s.click_button or "left"
             pyautogui.moveTo(int(s.drag_from_x), int(s.drag_from_y))
-            pyautogui.dragTo(int(s.drag_to_x), int(s.drag_to_y),
-                             max(1, int(s.drag_duration_ms)) / 1000.0)
-            pyautogui.mouseDown(button=s.click_button or "left")
-            self.msleep(max(1, int(s.drag_duration_ms)))
-            pyautogui.moveTo(int(s.drag_to_x), int(s.drag_to_y))
-            pyautogui.mouseUp(button=s.click_button or "left")
+            pyautogui.mouseDown(button=btn)
+            pyautogui.dragTo(
+                int(s.drag_to_x),
+                int(s.drag_to_y),
+                max(1, int(s.drag_duration_ms)) / 1000.0,
+                button=btn,
+            )
+            pyautogui.mouseUp(button=btn)
             return True
         except Exception as e:
             self.log.emit(f"  !! drag err: {e}")
