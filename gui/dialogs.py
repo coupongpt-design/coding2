@@ -607,8 +607,6 @@ class NotImageDialog(QDialog):
 
     # ---- 결과 구성 ----
     def result_step(self) -> Optional[StepData]:
-        if self.result() != QDialog.Accepted:
-            return None
         t = self.cbType.currentText().strip()
         name = self.edName.text().strip() or t
         key_string = self.edKey.text().strip()
