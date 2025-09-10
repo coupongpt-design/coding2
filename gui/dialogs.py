@@ -4,7 +4,7 @@ import uuid
 import numpy as np
 import cv2
 from PyQt5.QtCore import Qt, QRect, QPoint, QEventLoop, QTimer
-from PyQt5.QtGui import QKeySequence, QCursor
+from PyQt5.QtGui import QCursor, QKeySequence
 from PyQt5.QtWidgets import (
     QDialog, QFormLayout, QSpinBox, QLineEdit, QDialogButtonBox,
     QVBoxLayout, QLabel, QPushButton, QGroupBox, QHBoxLayout,
@@ -577,16 +577,16 @@ class NotImageDialog(QDialog):
         name = self.edName.text().strip() or t
         if t == "key":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="key",
-                            key_string=hk_normalize(self.edKey.text()), key_times=self.spTimes.value())
+                            key_string=self.edKey.text(), key_times=self.spTimes.value())
         if t == "key_down":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_down",
-                            key_string=hk_normalize(self.edKey.text()))
+                            key_string=self.edKey.text())
         if t == "key_up":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_up",
-                            key_string=hk_normalize(self.edKey.text()))
+                            key_string=self.edKey.text())
         if t == "key_hold":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="key_hold",
-                            key_string=hk_normalize(self.edKey.text()), hold_ms=self.spHold.value())
+                            key_string=self.edKey.text(), hold_ms=self.spHold.value())
         if t == "click_point":
             return StepData(id=str(uuid.uuid4())[:8], name=name, type="click_point",
                             click_button=self.edBtn.text().strip() or "left",
